@@ -1,0 +1,32 @@
+Usage:
+  [Common]
+    perl project_clone.pl -p {codebase_full_path} -o {base_company/base_project} -n {new_company/new_project}
+  [Arguments]
+    -p  : source codebase full path in local device.(usually is release package uncompress path)
+    -o  : base_company/base_project which the new project created from, support cross company.
+    -n  : new_company/new_project need to be created.
+  [Non-essential arg.]
+    [-32] : Downgrade to 32bit form 64bit. (default: the same clone_project)
+    [-64] : Upgrade to 64bit form 32bit. (default: the same clone_project)
+  [Example]
+    e.g. Create Project mtk/mtk6735_n1 from mediateksample/tk6735_n1:
+    perl project_clone.pl -p "/home/user/release/v1.2.1/alps" -o "mediateksample/tk6735_n1" --n "mtk/mtk6735_n1"
+
+
+1:cd vendor/mediatek/proprietary/scripts/project_clone目录下
+2:执行如下命令：
+	perl project_clone.pl -p {codebase_full_path} -o {base_company/base_project} -n {new_company/new_project}
+
+例如：
+	perl project_clone.pl -p "/home/user/release/v1.2.1/alps" -o "mediateksample/tk6735_n1" --n "mtk/mtk6735_n1"
+	perl project_clone.pl -p "/home/gaoyuxia/dailybuild/WAI016_Master/WAI016_Master" -o "mediateksample/tb8167p3_bsp" -n "wind/WAI016"
+参数解析：
+
+	-p：后面是本套代码的根目录路径
+	-o：需要客制化的lunch平台选项（一般在device/mediateksample/目录下，在这里会省略device）
+	-n：客制化出来的目录（一般为项目名称）
+
+	好了，脚本执行完会在vendor/mediatek/proprietary/scripts/project_clone目录下生成对应客制化生成物的路径，
+得到这些路径后就可以到wind/custome_files目录下创建对应的客制化目录啦，很简单吧，祝你成功哟！
+
+（此方法只限于MT8167平台）
