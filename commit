@@ -1,0 +1,329 @@
+#!/usr/bin/perl
+
+use strict;
+use File::Find;
+
+my ($prj) = @ARGV;
+if(!defined $prj)
+{
+    die("Project name error!!!\n");
+}
+my $arg;
+my $work_path;
+my $base_path;
+my $git_status = "__git_status";
+my $git_status2 = "__git_status2";
+my $file_list = "__file_list";
+my $origin_backup_path = "__origin_backup_path";
+my $wind_backup_path = "__wind_backup_path";
+my $file_name;
+my $need_commit = 0;
+my $line;
+my $rst;
+my $path;
+my @word;
+my $patch;
+my $mark;
+
+sub get_file
+{
+    if($file_name =~ /(.*)\/([^\/]+)/)
+    {
+        my $cur_path = $1;
+        my $cur_file = $2;
+        unless(-d "$origin_backup_path/$cur_path")
+        {
+            system("mkdir -p $origin_backup_path/$cur_path");
+        }
+        system("cp $base_path/$file_name $origin_backup_path/$file_name");
+
+        unless(-d "$wind_backup_path/$cur_path")
+        {
+            system("mkdir -p $wind_backup_path/$cur_path");
+        }
+        if($prj =~ /X200|M600|S300X|X201/)
+        {
+            system("cp $base_path/wind/$prj/custom_files/$file_name $wind_backup_path/$file_name");
+        }
+        else
+        {
+            system("cp $base_path/wind/custom_files/$file_name $wind_backup_path/$file_name");
+        }
+
+        if(-d "$base_path/$cur_path")
+        {
+            chdir("$base_path/$cur_path");
+            print ">>>check $base_path/$cur_path === $cur_file\n";
+            $rst = system("git checkout $cur_file");
+            if($rst == 0)
+            {
+                if($prj =~ /X200|M600|S300X|X201/)
+                {
+                    system("cp -f $base_path/$file_name $base_path/wind/$prj/custom_files/$file_name");
+                }
+				elsif($prj =~ /AIPager/)
+				{
+                                	#生成原始文件的提交
+					system("cp -f $base_path/$file_name $base_path/wind/custom_files/$file_name","git add $base_path/wind/custom_files/$file_name");
+				}
+                else
+                {
+                    system("cp -f $base_path/$file_name $base_path/wind/custom_files/$file_name");
+                }
+                system("cp -f $origin_backup_path/$file_name $base_path/$file_name");
+            }
+            return $rst;
+        }
+        else
+        {
+        return 1;
+        }
+    }
+}
+
+sub delete_tab
+{
+    #判断是否为.c 和.java 文件
+    @word=split(/\./,$path);
+    for(my $i=1;$i<4;$i=$i+1)
+    {
+        if($word[$i] =~ /\bc\b|\bjava\b|\bcpp\b|\bxml\b|\bsh\b|\bpl\b|\bh\b/)
+        {
+            print "**********$base_path/wind/$path\n";
+            open(OF,"$path");
+            #生成一个临时储存的文件
+            open(LOG,">$word[0].bak");
+            #tab键换空格，去掉后面的tab键和空格
+            while(<OF>)
+            {
+                my $line_ = $_;
+                $line_ =~ s/\t/    /g;
+                $line_ =~ s/\t+$//g;
+                $line_ =~ s/ +$//g;
+                #print "+++++++++++$line_\n";
+                print LOG $line_;
+                #print OF $line_;
+            }
+            close(OF);
+            close(LOG);
+            #复制到源文件，删除临时文件
+            system("cp -rf $word[0].bak $path");
+            system("rm -rf $word[0].bak");
+        }
+    }
+}
+
+{
+    #get work path
+    #work_path为当前目录
+    #base_path为alps根目录
+    $work_path = $ENV{'PWD'};
+    if($work_path =~ /(.*alps)\/wind.*/)
+    {
+        $base_path = $1;
+    }
+    else
+    {
+        #$arg = "nc";
+        $base_path = $work_path;
+        if($base_path =~ /(.*)\/wind.*/)
+        {
+            $base_path = $1;
+        }
+    }
+
+    #print "$base_path====$work_path----\n";
+    #set para
+    $git_status = "$base_path/$git_status";
+	print "打印git status";
+	print "git_status=$git_status";
+    $origin_backup_path = "$base_path/$origin_backup_path";
+    $wind_backup_path = "$base_path/$wind_backup_path";
+    $file_list = "$base_path/$file_list";
+
+    #mkdir("$base_path/wind");
+    system("git status > $git_status");
+    if($arg ne "nc")
+    {
+        $git_status2 = "$base_path/$git_status2";
+        open(GS, "$git_status") or die("file error $! $git_status\n");
+        open(GS2, ">$git_status2");
+        open(FL, ">$file_list");
+        while(<GS>)
+        {
+            $line = $_;
+            if(($line =~ /Untracked files:/) or ($line =~ /Changes not staged for commit/))
+            {
+                print "go to last!!!\n";
+                last;
+            }
+
+            if($line =~ /^\s+new file:\s+([^\s]*)$/)
+            {
+                $file_name = $1;
+                if($prj =~ /X200|M600|S300X|X201/)
+                {
+                    $mark = $file_name =~ s/^$prj\/custom_files\///
+                }
+                else
+                {
+                    $mark = $file_name =~ s/^custom_files\///
+                }
+                if($mark)
+                {
+                    $patch = $file_name;
+                    $patch =~ s/\s//g;
+                    for my $n (1..200)
+                    {
+                        if(-f "$base_path/wind/patch/P$n/$patch")
+                        {
+                        print "\n\n\n你提交的$file_name文件在wind/patch/P$n中存在，请确定是否是在最新的patch基础上修改的! ! ! !";
+                        print "\n你提交的$file_name文件在wind/patch/P$n中存在，请确定是否是在最新的patch基础上修改的! ! ! !";
+                        print "\n你提交的$file_name文件在wind/patch/P$n中存在，请确定是否是在最新的patch基础上修改的! ! ! !\n\n\n";
+                        sleep(3);
+                        }
+                    }
+                    if(-f "$base_path/$file_name")
+                    {
+                        if(get_file($file_name) == 0)
+                        {
+                            print "find origin: $file_name\n";
+                            $need_commit = 1;
+                            if($prj =~ /X200|M600|S300X|X201/)
+                            {
+                                print FL "$prj\/custom_files/$file_name\n";
+                                print GS2 "\tmodified:   $prj\/custom_files/$file_name\n";
+                            }
+                            else
+                            {
+                                print FL "custom_files/$file_name\n";
+                                print GS2 "\tmodified:   custom_files/$file_name\n";
+                            }
+                        }
+                        else
+                        {
+                            print GS2 "$line";
+                        }
+                    }
+                    else
+                    {
+                        print GS2 "$line";
+                    }
+                }
+                else
+                {
+                    print GS2 "$line";
+                }
+            }
+            else
+            {
+                print GS2 "$line";
+            }
+        }
+        close(GS);
+        close(GS2);
+        close(FL);
+
+        #commit
+        if($need_commit != 0)
+        {
+            chdir("$base_path/wind");
+            system("git reset");
+            print("git reset\n");
+            open(FL, "$file_list") or die("file error $! $file_list\n");
+            my $cs = "[Wind Script] Auto add origin files\n\n";
+            while(<FL>)
+            {
+                $cs = "$cs\tnew file:   $_";
+                system("git add $_");
+                print ">>>origin add $_\n";
+            }
+            close(FL);
+            system("git commit -m \"$cs\"");
+            print("git commit origin\n");
+            #copy
+            if($prj =~ /X200|M600|S300X|X201/)
+            {
+                system("cp -rf $wind_backup_path/* $base_path/wind/$prj/custom_files/");
+            }
+            else
+            {
+                system("cp -rf $wind_backup_path/* $base_path/wind/custom_files/");
+            }
+
+        }
+    }
+    else
+    {
+        $git_status2 = $git_status;
+    }
+
+    #reset template
+    my $old_template;
+    if(open(GC, "$ENV{'HOME'}/.gitconfig"))
+    {
+        while(<GC>)
+        {
+            if($_ =~ /template = (.*)$/)
+            {
+                $old_template = $1;
+            }
+        }
+        close(GC);
+    }
+    my $commit_temp = "$ENV{'HOME'}/__commit_temp";
+    system("git config --global commit.template $commit_temp");
+
+    #commit
+    open(SG2, "$git_status2") or die("file error $! $git_status2\n");
+    open(CT, ">$commit_temp");
+    print CT "[Subject]\n[$prj]\n[Bug Number/CSP Number/Enhancement/New Feature]\nN/A\n[Ripple Effect]\nN/A\n[Solution]\nN/A\n[Project]\n[$prj]\n\n\n";
+    while(<SG2>)
+    {
+        $line = $_;
+        if($line =~ /^\s+deleted:\s+(.+)$/)
+        {
+            print ">>>remove $1\n";
+            system("git rm $1");
+            print CT "$line";
+        }
+        elsif($line =~ /^\s+modified:\s+(.+)$/)
+        {
+            print ">>>modify $1\n";
+            #$path = $1;
+            system("git add $1");
+            print CT "$line";
+        }
+        elsif($line =~ /^\s+new file:\s+(.+)$/)
+        {
+            print ">>>new $1\n";
+            #$path = $1;
+            system("git add $1");
+            print CT "$line";
+        }
+        elsif($line =~ /^\s+renamed:\s+(.+) -> (.+)$/)
+        {
+            print ">>>rename $1 -> $2\n";
+            system("git rm $1");
+            system("git add $2");
+            print CT "$line";
+        }
+    }
+    close(SG2);
+    if(-d "$base_path/wind")
+    {
+        chdir("$base_path/wind");
+    }
+    system("git commit");
+    print("git commit\n");
+    if(defined $old_template)
+    {
+        system("git config --global commit.template $old_template");
+    }
+
+    chdir("$base_path");
+    system("rm -rf __*");
+}
+
+=pod
+=cut
