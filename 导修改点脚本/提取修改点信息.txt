@@ -1,0 +1,42 @@
+#提取修改点内容
+ssh -p 29418 10.0.30.10 gerrit query branch:master after:"2018-09-13" project:^LNX_LA_MSM8953_OWL_PSW/.*  status:merged --format JSON --current-patch-set --files | grep -aoe "subject[^,]*" | awk -F":" '{print $2}'
+
+编译前入库编译（就是change入库前，将提交 cherry-pick到本地编译的脚本）
+1：查找gerrit上open状态的所有提交
+2：使用cherry-pick方法，把open状态的提交PICK到本地
+3：所有代码pick到本地后，进行编译
+
+ssh -p 29418 10.0.30.251 gerrit query branch:master after:"2018-12-28" before:"2019-01-04" project:^LNX_LA_MSM8917_PSW/.* status:merged --format JSON --current-patch-set --files | egrep "project^  number|revision|Depends-On"
+
+#删除Bug后面的所有内容
+%s/\[Bug[a-zA-Z0-9\/\-\[\]\"\_\ ]*//g
+
+
+%s/\"[a-zA-Z0-9\/\-\[\]\"\_\ ]*\]//g
+
+
+得到指定日期之后的修改点和OWNER信息：
+ssh -p 29418 10.0.30.10 gerrit query branch:master after:"2018-09-13" project:^LNX_LA_MSM8953_OWL_PSW/.*  status:merged  | grep "username" > name.txt
+
+ssh -p 29418 10.0.30.10 gerrit query branch:master after:"2018-09-13" project:^LNX_LA_MSM8953_OWL_PSW/.*  status:merged  | grep "subject" > message.txt
+
+去掉message.txt信息中多余的信息:
+%s/subject\:[a-zA-Z0-9\/\-\[\]\"\_\ ]*\]//g
+
+paste message.txt name.txt > update_code.txt
+
+
+得到2019-02-11到2019-02-18之间的提交
+ssh -p 29418 10.0.30.10 gerrit query branch:master_32 after:"2019-02-11" before:"2019-02-18" project:^LNX_LA_SDM450_S102X_PSW/.*  status:merged | grep "Subject" > message.txt
+
+S102X_32位修改点
+ssh -p 29418 10.0.30.10 gerrit query branch:master_32 project:^LNX_LA_SDM450_S102X_PSW/.*  status:merged | grep "Subject" > message.txt
+ssh -p 29418 10.0.30.10 gerrit query branch:Stable_Factory32_BRH after:"2019-04-12" project:^LNX_LA_SDM450_S102X_PSW/.*  status:merged | grep "Subject" > message.txt
+
+P118F提取修改点：
+ssh -p 29418 10.0.30.10 gerrit query branch:master after:"2019-03-21" project:^LNX_LA_SDM450_PSW/.*  status:merged  | grep "subject" > message.txt
+ssh -p 29418 10.0.30.10 gerrit query branch:Stable_P118F_Factory_BRH after:"2019-04-11" project:^LNX_LA_SDM450_PSW/.*  status:merged  | grep "subject" > message.txt
+
+S100X提取修改：
+ssh -p 29418 10.0.30.10 gerrit query branch:master after:"2019-04-16" project:^LNX_LA_MSM8917_PSW/.*  status:merged  | grep "subject" > message.txt
+ssh -p 29418 10.0.30.10 gerrit query branch:Stable_S100X_Korea_BRH after:"2019-04-16" project:^LNX_LA_MSM8917_PSW/.*  status:merged  | grep "subject" > message.txt
