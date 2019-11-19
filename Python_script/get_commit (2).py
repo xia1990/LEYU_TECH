@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 #_*_ coding:utf-8 _*_
 
 import xlwt
@@ -6,9 +6,16 @@ import xlrd
 import time
 import commands
 import re
+import subprocess
+
+project_name="^LNX_LA_SDM450_PSW/.*"
+date_today="2019-10-30"
+branch="Stable_P118F_Factory_BRH"
 
 D_Time=time.strftime("%Y-%m-%d", time.localtime())
-filename=commands.getoutput('ssh -p 29418 10.0.30.251 gerrit query branch:master after:"2019-08-05" project:^LNX_LA_SDM450_PSW/.*  status:merged  | grep "subject" > message.txt')
+#filename=commands.getoutput('ssh -p 29418 10.80.30.251 gerrit query branch:master after:%s project:%s status:merged  | grep "subject" > message.txt' % (date_today,project_name))
+filename=commands.getoutput('ssh -p 29418 10.80.30.10 gerrit query branch:%s after:%s project:%s status:merged  | grep -aoe "subject[^,]*" > message.txt' % (branch,date_today,project_name))
+
 commit_msg=[]
 
 
@@ -29,6 +36,7 @@ def set_style(name,height,bold=False):
     return style
 
 def write_excel():
+    
     f=xlwt.Workbook(encoding="utf-8")
     sheet1=f.add_sheet('D_Time问题修改点',cell_overwrite_ok=True)
     row0=[u'序号',u'BUG号',u'调试单元',u'软件确认状态',u'软件确认时间',u'备注']
@@ -48,7 +56,7 @@ def write_excel():
                 sheet1.write(i+1,2,commit_msg[i])
                 sheet1.write(i+1,3,"OK")
                 sheet1.write(i+1,4,time.strftime("%Y%m%d"))
-    f.save("update_code.xls")
+    f.save(time.strftime("%Y%m%d")+"修改问题点.xls")
 
 
 if __name__=="__main__":
