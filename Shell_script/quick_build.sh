@@ -1,6 +1,30 @@
 #!/bin/bash
 
+######################################################################################################################
+###      编译命令: ./quick_build.sh S102X_32  r/n     必须得加这两个参数，一个项目名，一个new或remake             ####
+###                                                                                                               ####
+###      简单编译: ./quick_build.sh S102X_32  r/n    (remake/new  默认编译userdebug  默认不copy wind目录，不打开宏控)#
+###      编译user: ./quick_build.sh S102X_32  n  user                                                             ####
+###     copy wind: ./quick_build.sh S102X_32  r  fc      (fc为copy wind，nc为不copy wind目录)                     ####
+###      完整版: ./quick_build.sh S102X_32  n  debug  fc  nohlos                                                  ####
+###		编译完整二供天线参数版本:./quick_build.sh S102X_32  n  debug  fc  nohlos ant2                             ####
+###		编译北美版本:./quick_build.sh S102X_NA  debug new fc NA                                                   ####
+###		编译APK版本:./quick_build.sh S102X_NA  debug new fc wud NA                                                ####
+###                                                                                                               ####
+###     compile NOHLOS + AP follows ----------------------------------------------------------------------------  ####	
+###     compile AP + NOHLOS:       ./quick_build.sh S102X_32  n  debug  fc  nohlos|NOHLOS                         ####	
+###                                                                                                               ####
+###     compile NOHLOS follows ---------------------------------------------------------------------------------  ####	
+###     compile NOHLOS All:        ./quick_build.sh S102X_32  nohlos/NOHLOS                                       ####
+###     compile MPSS Only:         ./quick_build.sh S102X_32  MPSS                                                ####
+###     compile BOOT Only:         ./quick_build.sh S102X_32  BOOT                                                ####
+###     compile TZ Only:           ./quick_build.sh S102X_32  TZ                                                  ####
+###     compile RPM Only:          ./quick_build.sh S102X_32  RPM                                                 ####
+###     compile ADSP Only:         ./quick_build.sh S102X_32  ADSP                                                ####
+###                                                                                                               ####
+######################################################################################################################
 CPUCORE=32
+
 ########################################
 WsRootDir=`pwd`
 LOG_PATH=$WsRootDir/build-log
@@ -11,10 +35,24 @@ VARIANT=
 ACTION=
 NOHLOS_BUILD=
 COPYFILES=
+BUILDAPK=
+USE_ANT2=
 MODULE=
 LOG_FILE=build.log
-RADIO_PATH=$WsRootDir/device/qcom/SWAI_PAD/radio
+RADIO_PATH=$WsRootDir/device/qcom/S102X_32/radio
 
+########################## 宏控函数 begin ##########################
+
+function Build_NA()
+{
+    sed -i "s/BUILD_NA := false/BUILD_NA := true/" $WsRootDir/wind/custom_files/device/qcom/S102X_32/S102X_32.mk
+    echo "update Build_NA"
+}
+
+function Build_Apk(){
+    sed -i "s/MAKE_ALL_APPS := false/MAKE_ALL_APPS := true/" $WsRootDir/wind/custom_files/device/qcom/S102X_32/S102X_32.mk
+    echo "set Build_Apk finished"
+}
 ########################## 宏控函数 end ##########################
 
 # restore code in same as before
@@ -32,8 +70,8 @@ revert_code()
    	echo "Start revert Code...."
   	echo "repo forall -c \"git clean -df\""
    	repo forall -c  "git clean -df"
-   	echo "repo forall -c \"git checkout .\""
-   	repo forall -c "git checkout ."
+   	echo "repo forall -c \"git co .\""
+   	repo forall -c "git co ."
    	echo "rm -rf $LOG_PATH/*"
    	rm -rf $LOG_PATH/*
    	echo "rm -rf out"
@@ -98,10 +136,12 @@ function build_version()
 function copy_custom_files()
 {
     echo "Start copy custom files..."
+    #gaoyuxia@wind-mobi 20181017
     cp -rf ./wind/custom_files/* .
     cp -rf ./wind/custom_files/build/core/* build/core/
     cp -rf ./wind/custom_files/build/tools/* build/tools/
     cp -rf ./wind/custom_files/build/target/* build/target/
+    #gaoyuxia@wind-mobi 20181017
     echo "Copy custom files finish!"
 }
 
@@ -110,8 +150,16 @@ function analyze_args()
     ### set PRODUCT
     PROJECT=$1
     case $PROJECT in
-        SWAI_PAD)
-        PRODUCT=SWAI_PAD
+        S102X_32)
+        PRODUCT=S102X_32
+        echo "PRODUCT=$PRODUCT"
+        ;;
+        S102X_NA)
+        PRODUCT=S102X_32
+        echo "PRODUCT=$PRODUCT"
+        ;;
+        P118F)
+        PRODUCT=P118F
         echo "PRODUCT=$PRODUCT"
         ;;
         *)
@@ -199,6 +247,7 @@ function analyze_args()
             if [ x$ACTION != x"" ];then continue; fi
             ACTION=cts
         
+	### lihaiyan@wind-mobi.com  +++
 	elif [ x$command == x"nohlos" ] || [ x$command == x"NOHLOS" ];then
             if [ x$NOHLOS_BUILD != x"" ];then continue; fi
             NOHLOS_BUILD=NOHLOS
@@ -217,7 +266,12 @@ function analyze_args()
 	elif [ x$command == x"ADSP" ];then
             if [ x$NOHLOS_BUILD != x"" ];then continue; fi
             NOHLOS_BUILD=ADSP
+    elif [ x$command == x"NA" ];then
+        if [ x$NOHLOS_BUILD != x"" ];then continue;fi
+            NOHLOS_BUILD=NA
+	### lihaiyan@wind-mobi.com  ---
 		
+			
         ### set COPYFILES
         elif [ x$command == x"fc" ];then
             if [ x$COPYFILES != x"" ];then continue; fi
@@ -225,7 +279,18 @@ function analyze_args()
         elif [ x$command == x"nc" ];then
             if [ x$COPYFILES != x"yes" ];then continue; fi
             COPYFILES=no
+        elif [ x$command == x"wud" ];then
+            if [ x$BUILDAPK != x"" ];then continue; fi
+            BUILDAPK=yes
+
 			
+		#luofuhong@wind-mobi.com 190215 +++
+		### is use modem ant2 parameters?
+		elif [ x$command == x"ant2" ];then
+			if [ x$USE_ANT2 != x"" ];then continue; fi
+			USE_ANT2=yes
+		#luofuhong@wind-mobi.com 190215 ---
+            
         ### set MODULE
         elif [ x$command == x"pl" ];then
             if [ x$MODULE != x"" ];then continue; fi
@@ -318,7 +383,10 @@ function main()
     fi
 
     analyze_args $1 $2 $3 $4 $5 $6
-    echo "`date +"%F %T"` ./quick_build.sh $1 $2 $3 $4 $5 $6" > $LOG_PATH/record.log
+
+    #add by cenxingcan@wind-mobi.com __add_record.log__ 2017/05/27 start
+    echo "`date +"%F %T"` ./quick_build.sh $1 $2 $3 $4 $5 $6" >> $LOG_PATH/record.log
+    #add by cenxingcan@wind-mobi.com __add_record.log__ 2017/05/27  end
 
     if [ x$ACTION == x"revert" ];then
         revert_code
@@ -327,13 +395,23 @@ function main()
     ### Check VARIANT WHEN NOT NEW
     Check_Variant
 
-    echo "PRODUCT=$PRODUCT VARIANT=$VARIANT ACTION=$ACTION MODULE=$MODULE COPYFILES=$COPYFILES ORIGINAL=$ORIGINAL WIND_SWAI_PAD_FACTORY=$WIND_SWAI_PAD_FACTORY"
+    echo "PRODUCT=$PRODUCT VARIANT=$VARIANT ACTION=$ACTION MODULE=$MODULE COPYFILES=$COPYFILES ORIGINAL=$ORIGINAL WIND_S102X_32_FACTORY=$WIND_S102X_32_FACTORY"
     echo "Log Path $LOG_PATH"
 
     ##################################################################
     #Prepare
     ##################################################################
     Check_Space
+
+    #gaoyuxia@leyu-tech.com
+    if [ x$PROJECT == x"S102X_NA" ];then
+        Build_NA
+    fi
+    
+    if [ x$BUILDAPK == x"yes" ];then
+        Build_Apk
+    fi
+    #gaoyuxia@leyu-tech.com
 
     if [ x$COPYFILES == x"yes" ];then
         copy_custom_files
@@ -347,6 +425,14 @@ function main()
     echo "Build started `date +%Y%m%d_%H%M%S` ..."
     echo;echo;echo;echo
 	
+	#luofuhong@wind-mobi.com +++ 
+	if [ x$USE_ANT2 == x"yes" ] ; then
+		echo "use second ant parameter(vendor ruide)"
+		./NOHLOS/wind_modem_compatibility/cp_ant_param.sh
+	fi
+	#luofuhong@wind0mobi.com 
+	
+	### lihaiyan@wind-mobi.com  +++
     if [ x$NOHLOS_BUILD == x"NOHLOS" ] ; then
     	echo "NOHLOS Build started `date +%Y%m%d_%H%M%S` ..."
 		echo
@@ -364,9 +450,14 @@ function main()
 		cd ./NOHLOS
 			./build_n.sh $NOHLOS_BUILD
 		cd -
+    elif [ x$NOHLOS_BUILD == x"NA" ];then
+		cd ./NOHLOS
+            ./build_n.sh all
+        cd -
     else
         echo "编译完成"
 	fi	
+    ### lihaiyan@wind-mobi.com  ---
 
 
     #lunch $PRODUCT-$VARIANT
@@ -409,9 +500,14 @@ function main()
 		### if compile MPSS then call cpn_NOHLOS release MPSS & symbols only
 	elif [ x$NOHLOS_BUILD == x"MPSS" ];then
 			./cpn_NOHLOS
+    elif [ x$NOHLOS_BUILD == x"NA" ];then
+        cd ./NOHLOS
+            ./cpn_na
+        cd -
     else
         echo "编译完成"
 	fi	
+	
 }
 
 usage() {
@@ -422,7 +518,7 @@ Usage:
     e.g : bash_path$ $0 S100X r debug fc wud
 
 PRODUCT:
-    SWAI
+    S102X_32 | P118F 
 
 ACTION:
     new | remake | n | r | boot | system | userdata 
@@ -439,10 +535,10 @@ COPYFILES:
 
 用法：
     bash_path$ $0 [PRODUCT] [ACTION] [VARIANT] [COPYFILES] [NOHLOS_BUILD]
-    示例: bash_path$ $0 SWAI_PAD r debug fc （remake debug版本 copy wind目录）
+    示例: bash_path$ $0 S102X_32 r debug fc （remake debug版本 copy wind目录）
 
 PRODUCT:
-    SWAI
+    S102X_32 | P118F
 
 ACTION:
     new | remake | n | r | boot | system | userdata

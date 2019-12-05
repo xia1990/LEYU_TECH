@@ -1,6 +1,7 @@
 #!/bin/bash
 
 PATHROOT=`pwd`
+export PATH=~/bin:$PATH
 
 cd $PATHROOT
 
