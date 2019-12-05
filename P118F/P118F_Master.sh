@@ -1,12 +1,10 @@
 #!/bin/bash
-. /etc/profile
 
 WsRootDir=`pwd`
 export USER=`whoami`
 export PATH=~/bin:$PATH
 PRO_PATH=$WsRootDir/P118F_Master
 CPUCORE=8
-
 D_TIME=`date +%Y%m%d`
 
 function main()
@@ -29,22 +27,17 @@ function main()
             #rm -rf out
             #repo forall -c 'git clean -fd;git reset --hard HEAD;git status'
             rm -rf *
-			cd ./wind
-                old_commitID=$(git log -1 | grep "commit" | awk '{print $2}')
-            cd -
-            repo sync -cj4 -d -f
+            repo sync -cj4 -f
             cd $PRO_PATH/wind
-                git pull
-				new_commitID=$(git log -1 | grep "commit" | awk '{print $2}')
-            cd -
-			if [ $old_commitID == $new_commitID ];then
-                echo "没有人提交"
-                exit
-            else                          
-				repo start master --all
-				original_build
-				make_NOHLOS
-			fi
+                git checkout .
+                git pull --rebase > log.txt
+                if [ "$?" -ne 0 ];then
+                    git pull --rebase
+                fi
+            cd -                       
+			repo start master --all
+			original_build
+			make_NOHLOS
         cd -
         cd $PRO_PATH/NOHLOS/out
             mv FlashPackage_SDM450_QFIL.zip P118F-$D_TIME.zip
@@ -63,7 +56,7 @@ function original_build()
     sed -i "s/INVER=.*/INVER=$DAILYBUILD_NUMBER/" $PRO_PATH/wind/custom_files/device/qcom/P118F/version
     sed -i "s/OUTVER=.*/OUTVER=tye100.1.00.00.01/" $PRO_PATH/wind/custom_files/device/qcom/P118F/version
     #sed -i "s/W95M01A2-2/W95M01A3-3/" $PRO_PATH/wind/custom_files/device/qcom/P118F/version
-    ./quick_build.sh P118F userdebug fc new
+    ./quick_build.sh P118F userdebug fc new 
 }
 
 function pull_code()
@@ -74,15 +67,15 @@ function pull_code()
     
     if [ ! -f ./.repo/manifest.xml ] ;then
         echo "repo init failed"
-        echo "check repo path ssh://$USER@10.0.30.10:29418/$PLALFORM_LIBRARY  is right?"
+        echo "check repo path ssh://$USER@10.0.30.10:29418/LNX_LA_SDM450_PSW  is right?"
     exit 0
     fi
     
-    sed -i 's/itadmin/'"$USER"'/' ./.repo/manifest.xml
+    sed -i "s/itadmin\@//g" ./.repo/manifests/manifest.xml
     
     
     #更新代码，创建分支
-    repo sync
+    repo sync -cj4
     repo start master --all
     echo "####################### pull code end #########################"
 }
@@ -95,7 +88,9 @@ function make_NOHLOS(){
 }
 
 function upload_version(){
-    smbclient //10.80.10.2/人工智能bg软件部/ -U gaoyuxia%gyx@2019 -c "cd 2_临时软件版本\P118F\dailybuild;lcd $PRO_PATH/NOHLOS/out;put  P118F-$D_TIME.zip"
+	cd $PRO_PATH/NOHLOS/out
+		smbclient //10.80.10.2/人工智能bg软件部/ -U gaoyuxia%gyx@2019 -c "cd 2_临时软件版本\P118F\dailybuild;lcd $PRO_PATH/NOHLOS/out;put  P118F-$D_TIME.zip"
+	cd -
 }
 #####################
 main 

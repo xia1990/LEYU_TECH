@@ -19,33 +19,31 @@ function main()
         cd -
         cd $PRO_PATH/NOHLOS/out
             mv FlashPackage_S102X_32_SDM450_QFIL.zip S102X_32_$D_TIME.zip
-            upload_version
+            #upload_version
         cd -
     else
         echo "存在"
         cd $PRO_PATH
             #rm -rf out
-            #repo forall -c 'git clean -fd;git reset --hard HEAD;git status'            
-            cd ./wind
-                old_commitID=$(git log -1 | grep "commit" | awk '{print $2}')
+            #repo forall -c 'git clean -fd;git reset --hard HEAD;git status'
+            cd ./.repo/manifests
+                repo manifest -ro old.xml
             cd -
-			rm -rf *
+            rm -rf *
             repo sync -cj4 -d -f
             cd ./wind
                 git pull 
-                new_commitID=$(git log -1 | grep "commit" | awk '{print $2}')
             cd -
-            if [ $old_commitID == $new_commitID ];then
-                echo "没有人提交"
-                exit
-            else
-                repo start master_32 --all
-                original_build
+            repo start master_32 --all
+            cd ./.repo/manifests
+                repo manifest -ro new.xml
+            cd -
+            original_build
             fi
         cd -
         cd $PRO_PATH/NOHLOS/out
             mv FlashPackage_S102X_32_SDM450_QFIL.zip S102X_32_$D_TIME.zip
-            upload_version
+            #upload_version
         cd -
     fi
 }
@@ -65,7 +63,7 @@ function original_build()
 function pull_code()
 {
     #repo init -u ssh://10.80.30.10:29418/LNX_LA_SDM450_S102X_PSW/Manifest -m manifest.xml -b master_32 --repo-url=ssh://10.80.30.10:29418/Tools/Repo --no-repo-verify --reference="/EXCHANGE/mirror/AIBG_MIRROR/S102X_MIRROR_REPO/"
-    repo init -u ssh://10.80.30.10:29418/LNX_LA_SDM450_S102X_PSW/Manifest -m manifest.xml -b master_32 --repo-url=ssh://10.80.30.10:29418/Tools/Repo --no-repo-verify --reference="/home/gaoyuxia/mirror/S102X_MIRROR/"
+    repo init -u ssh://10.80.30.10:29418/LNX_LA_SDM450_S102X_PSW/Manifest -m manifest.xml -b master_32 --repo-url=ssh://10.80.30.10:29418/Tools/Repo --no-repo-verify --reference="/home2/gaoyuxia2/mirror/S102X_MIRROR"
     
     if [ ! -f ./.repo/manifest.xml ] ;then
         echo "repo init failed"
@@ -86,8 +84,21 @@ function pull_code()
 }
 
 function upload_version(){
-    smbclient //10.80.10.2/人工智能bg软件部/ -U gaoyuxia%gyx@2019 -c "cd 2_临时软件版本\S102X\32位版本\32_dailybuild;lcd $PRO_PATH/NOHLOS/out;put S102X_32_$D_TIME.zip"
+    cd $PRO_PATH/NOHLOS/out
+        smbclient //10.80.10.2/人工智能bg软件部/ -U gaoyuxia%gyx@2019 -c "cd 2_临时软件版本\S102X\32位版本\32_dailybuild;lcd $PRO_PATH/NOHLOS/out;put S102X_32_$D_TIME.zip"
+    cd -
 }
 
 ########################
 main
+cd $PRO_PATH/.repo/manifests
+    repo diffmanifests old.xml new.xml > log.txt
+    if [ -s "log.txt" ];then
+        echo "file is not empty,begin upload"
+        upload_version
+    else
+        echo "文件为空"
+        rm -rf log.txt
+        exit 0
+    fi
+cd -

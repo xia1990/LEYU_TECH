@@ -2,10 +2,10 @@
 
 WsRootDir=`pwd`
 export USER=`whoami`
-export PATH=~/bin:$PATH
 PRO_PATH=$WsRootDir/S102X_Factory
 CPUCORE=8
 D_TIME=`date +%Y%m%d`
+Version="IFL-S102X-U100C_V1.0B03_0903"
 
 function main()
 {
@@ -17,33 +17,19 @@ function main()
             original_build
         cd -
         cd $PRO_PATH/NOHLOS/out
-            mv FlashPackage_S102X_32_Factory_QFIL.zip S102X_32_Factory_$D_TIME.zip
+            mv FlashPackage_S102X_32_Factory_QFIL.zip $Version.zip
             upload_version
         cd -
     else
         echo "存在"
         cd $PRO_PATH
-            #rm -rf out
-            #repo forall -c 'git clean -fd;git reset --hard HEAD'
             rm -rf *
-			cd ./wind
-                old_commitID=$(git log -1 | grep "commit" | awk '{print $2}')
-            cd -
             repo sync -cj4
-			cd ./wind
-                git pull 
-                new_commitID=$(git log -1 | grep "commit" | awk '{print $2}')
-            cd -
-			if [ $old_commitID == $new_commitID ];then
-                echo "没有人提交"
-                exit
-            else
-				repo start Stable_Factory32_BRH --all
-				original_build
-			fi
+	    repo start Stable_Factory32_BRH --all
+            original_build
         cd -
         cd $PRO_PATH/NOHLOS/out
-            mv FlashPackage_S102X_32_Factory_QFIL.zip S102X_32_Factory_$D_TIME.zip
+            mv FlashPackage_S102X_32_Factory_QFIL.zip $Version.zip
             upload_version
         cd -
     fi
@@ -52,11 +38,8 @@ function main()
 function original_build()
 {
     sed -i 's/CPUCORE=8/CPUCORE=32/' $PRO_PATH/quick_build.sh
-    #"修改dailybuild版本号"
-    DAILYBUILD_NUMBER=S102X_32_Factory_$D_TIME
-    echo $DAILYBUILD_NUMBER
-    sed -i "s/INVER=.*/INVER=$DAILYBUILD_NUMBER/" $PRO_PATH/wind/custom_files/device/qcom/S102X_32/version
-    #sed -i "s/OUTVER=.*/OUTVER=tye100.1.00.00.01/" $PRO_PATH/wind/custom_files/device/qcom/S102X_32/version
+    sed -i "s/INVER=.*/INVER=$Version/" $PRO_PATH/wind/custom_files/device/qcom/S102X_32/version
+    sed -i "s/OUTVER=.*/OUTVER=$Version/" $PRO_PATH/wind/custom_files/device/qcom/S102X_32/version
     #sed -i "s/W95M01A2-2/W95M01A3-3/" $PRO_PATH/wind/custom_files/device/qcom/S102X_32/version
     ./quick_build.sh S102X_32 debug new fc NOHLOS
 }
@@ -65,7 +48,7 @@ function pull_code()
 {
     
     #--no-repo-verify:不进行校验
-    repo init -u ssh://10.80.30.10:29418/LNX_LA_SDM450_S102X_PSW/Manifest -m manifest.xml -b Stable_Factory32_BRH --repo-url=ssh://10.80.30.10:29418/Tools/Repo --no-repo-verify --reference="/home/gaoyuxia/mirror/S102X_MIRROR/"
+    repo init -u ssh://10.80.30.10:29418/LNX_LA_SDM450_S102X_PSW/Manifest -m manifest.xml -b Stable_Factory32_BRH --repo-url=ssh://10.80.30.10:29418/Tools/Repo --no-repo-verify --reference="/home/itadmin/mirror/S102X_MIRROR"
     
     if [ ! -f ./.repo/manifest.xml ] ;then
         echo "repo init failed"
@@ -93,7 +76,7 @@ function make_NOHLOS(){
 }
 
 function upload_version(){
-        smbclient //10.80.10.2/人工智能bg软件部/ -U gaoyuxia%gyx@2019 -c "cd 2_临时软件版本\S102X\32位版本\32_factory_dailybuild;lcd $PRO_PATH/NOHLOS/out;put S102X_32_Factory_$D_TIME.zip"
+        smbclient //10.80.10.2/人工智能bg软件部/ -U gaoyuxia%gyx@2019 -c "1_正式软件版本\SDM450\S102X\生产版本\6_MP_SMT;mkdir $Version;cd $Version;lcd $PRO_PATH/NOHLOS/out;put $Version.zip"
 }
 ################################
 main

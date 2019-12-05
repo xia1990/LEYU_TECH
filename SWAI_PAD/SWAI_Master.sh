@@ -1,4 +1,5 @@
 #!/bin/bash
+. /etc/profile
 
 WsRootDir=`pwd`
 export USER=`whoami`
@@ -25,7 +26,10 @@ function main()
             #rm -rf out
             #repo forall -c 'git clean -fd;git reset --hard HEAD;git status'
             rm -rf *
-            repo sync -cj4
+            repo sync -cj4 -d -f
+            cd ./wind
+                git pull
+            cd -
             repo start master --all
             original_build
         cd -
