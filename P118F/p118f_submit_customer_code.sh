@@ -22,17 +22,13 @@ function commit_code(){
             git pull --rebase
         popd
         rsync -avzp --exclude ".git" --delete ./wind/ ../251_P118F/wind/
-        pushd ../251_P118F/wind/
-            rm -rf custom_files/NOHLOS/
-            git checkout custom_files/device/qcom/P118F/version
-            git checkout custom_files/device/qcom/P118F/radio/
-            git checkout custom_files/packages/apps/Settings/res/layout-sw320dp/settings_entity_header.xml
-            git checkout custom_files/frameworks/base/packages/SystemUI/src/com/android/systemui/settings/BrightnessController.java 
-            git checkout custom_files/frameworks/base/services/core/java/com/android/server/display/DisplayPowerController.java
-            git checkout custom_files/packages/apps/Settings/src/com/wind/settings/display/WindDisplay.java
-            exit
+        pushd $PATHROOT/wind
+            file=$(git diff $COMMIT_ID $COMMIT_ID^ --name-status | awk '{print $2}')
+            echo -e "\e[31m $file \e[0m"
+        popd
 
-            git add -A
+        pushd ../251_P118F/wind/
+            git add $file
             #定义提交模板的信息
             message="[Subject]\n[$PROJECT]\n[Bug Number/CSP Number/Enhancement/New Feature]\nN/A\n[Ripple Effect]\nN/A\n[Solution]\nN/A\n[Project]\n[$PROJECT]\n\n\n"
             #提交信息
@@ -41,13 +37,15 @@ function commit_code(){
             #提交文件类型
             #TYPE=$(git status -s | awk '{print $1}')
             #提交文件列表
-            filelist=$(git status | grep "custom_files")
+            #filelist=$(git status | grep "custom_files")
 
             #此处处理换行问题
             git commit -m """$commit_message
 
-$filelist"""
-            echo "y" | repo upload . 
+$file"""
+            git clean -fdx
+            git reset --hard HEAD
+            echo "y" | repo upload .  
         popd
     popd
 }

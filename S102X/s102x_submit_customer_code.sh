@@ -4,7 +4,9 @@
 
 PATHROOT=`pwd`
 PROJECT=S102X
+#要回退到的commitid
 COMMIT_ID="$1"
+#提交信息
 describe="$2"
 
 
@@ -22,19 +24,15 @@ function commit_code(){
         pushd ../S102X_251/wind/
             git pull --rebase
         popd
-        rsync -avzp --exclude ".git" --delete ./wind/ ../S102X_251/wind/
+        rsync -avzp --exclude ".git" --delete ./wind/ ../S102X_251/wind/ > /dev/null
+        #得到要提交的文件
+        pushd $PATHROOT/wind
+            #file=$(git log $COMMIT_ID -1 | grep "custom_files" | awk '{print $2}')
+            file=$(git diff $COMMIT_ID $COMMIT_ID^ --name-status | awk '{print $2}')
+            echo -e "\e[31m $file \e[0m"
+        popd
         pushd ../S102X_251/wind/
-            rm -rf custom_files/NOHLOS/
-            git checkout custom_files/device/qcom/S102X/version
-			git checkout scripts/quick_build.sh
-			git checkout NOHLOS_IMAGE
-			git checkout custom_files/device/qcom/S102X/radio
-			rm -rf custom_files/device/qcom/S102X/radio/rawprogram0_update.xml
-            git checkout NOHLOS_CTA
-            git checkout custom_files/packages/apps/Leyu/
-            rm -rf custom_files/NOHLOS_CTA/
-exit
-            git add -A
+            git add $file
             #定义提交模板的信息
             message="[Subject]\n[$PROJECT]\n[Bug Number/CSP Number/Enhancement/New Feature]\nN/A\n[Ripple Effect]\nN/A\n[Solution]\nN/A\n[Project]\n[$PROJECT]\n\n\n"
             #提交信息
@@ -43,12 +41,15 @@ exit
             #提交文件类型
             #TYPE=$(git status -s | awk '{print $1}')
             #提交文件列表
-            filelist=$(git status | grep "custom_files")
+            #filelist=$(git status | grep "custom_files")
+            #echo -e "\e[34m $filelist \e[0m"
 
             #此处处理换行问题
             git commit -m """$commit_message
 
-$filelist"""
+    $file"""
+            git clean -fdx
+            git reset --hard HEAD
             echo "y" | repo upload .
         popd
     popd
