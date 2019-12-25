@@ -1,3 +1,6 @@
+在vendor\mediatek\release_note\MT8167下的release_note上会写出clone_project的脚本地址以及使用说明：
+
+
 Usage:
   [Common]
     perl project_clone.pl -p {codebase_full_path} -o {base_company/base_project} -n {new_company/new_project}
