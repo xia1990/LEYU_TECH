@@ -1,5 +1,6 @@
 #!/usr/bin/python
 #_*_ coding:utf-8 _*_
+#WAI0017导修改点脚本
 
 import commands
 import json
