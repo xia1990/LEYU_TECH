@@ -1,6 +1,10 @@
 #提取修改点内容
 ssh -p 29418 10.0.30.10 gerrit query branch:master after:"2018-09-13" project:^LNX_LA_MSM8953_OWL_PSW/.*  status:merged --format JSON --current-patch-set --files | grep -aoe "subject[^,]*" | awk -F":" '{print $2}'
 
+1：查询一个CR下的所有提交：
+ssh -p 29418 gerrit.mot.com gerrit query --commit-message IKSWR-50479 --format JSON --current-patch-set --patch-sets --comments
+
+
 编译前入库编译（就是change入库前，将提交 cherry-pick到本地编译的脚本）
 1：查找gerrit上open状态的所有提交
 2：使用cherry-pick方法，把open状态的提交PICK到本地
